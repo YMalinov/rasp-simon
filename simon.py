@@ -8,7 +8,7 @@ GPIO.setmode(GPIO.BOARD)
 
 debug = True
 startingSteps = 3
-sleepTime = 1
+sleepTime = 0.5
 
 # (switch, led)
 switchLeds = [(7, 8), (11, 12), (15, 16), (21, 22)]
@@ -17,11 +17,12 @@ lives = len(switchLeds) # max number of lives. any custom value should be lower 
 for tuple in switchLeds:
 	GPIO.setup(tuple[0], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 	GPIO.setup(tuple[1], GPIO.OUT)
+	GPIO.output(tuple[1], False)
 
 def generateRandomSteps(stepCount, steps):
 	for i in range(0, stepCount):
 		steps.append(randint(0, len(switchLeds) - 1))
-
+	
 	return steps
 
 def playThroughSteps(steps):
@@ -35,6 +36,7 @@ def playThroughSteps(steps):
 		GPIO.output(switchLeds[step][1], True)
 		time.sleep(sleepTime)
 		GPIO.output(switchLeds[step][1], False)
+		time.sleep(sleepTime)
 
 def getUserInput():
 	while True:
@@ -42,17 +44,21 @@ def getUserInput():
 			if GPIO.input(switchLeds[i][0]):
 				if debug:
 					print "user inputted index " + str(i)
+				
+				GPIO.output(switchLeds[i][1], True)
+				time.sleep(0.2)
+				GPIO.output(switchLeds[i][1], False)
 
 				return i
 
 def wrongInput():
 	if debug:
-		print "detected wrong input!"
+		print "detected wrong input! lives remaining " + str(lives)
 
 	for i in range(0, lives):
 		GPIO.output(switchLeds[i][1], True)
 	
-	time.sleep(sleepTime / 2)
+	time.sleep(sleepTime)
 
 	for i in range(0, lives):
 		GPIO.output(switchLeds[i][1], False)
@@ -95,14 +101,15 @@ try:
 				
 				if lives == 0:
 					gameOver()
-					return # a rudimentary return, if you manage to escape the infinite loop ;)
 				
 				wrongInput()
 
 				wrongInputFlag = True
 				break
 		
-		if not wrongInput:
-			generateRandomSteps(1, steps)
+		time.sleep(sleepTime)
+
+		if not wrongInputFlag:
+			steps = generateRandomSteps(1, steps)
 finally:
 	GPIO.cleanup()
